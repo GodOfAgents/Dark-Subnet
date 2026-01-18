@@ -1,0 +1,61 @@
+# Dark Subnet - Docker Compose
+#
+# Run the complete miner + validator simulation in Docker
+#
+# Usage:
+#   docker-compose up          # Run demo
+#   docker-compose up miner    # Run only miner
+#   docker-compose up validator # Run only validator
+
+version: '3.8'
+
+services:
+  # Full demo (trains model + runs demo)
+  demo:
+    build: .
+    container_name: dark-subnet-demo
+    command: python demo.py
+    volumes:
+      - ./fhe_models:/app/fhe_models
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # Simulated miner
+  miner:
+    build: .
+    container_name: dark-subnet-miner
+    command: python neurons/miner.py --simulate --port 8091
+    ports:
+      - "8091:8091"
+    volumes:
+      - ./fhe_models:/app/fhe_models
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8091/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Simulated validator
+  validator:
+    build: .
+    container_name: dark-subnet-validator
+    command: python neurons/validator.py --simulate --miner-url http://miner:8091 --rounds 5
+    depends_on:
+      miner:
+        condition: service_healthy
+    volumes:
+      - ./fhe_models:/app/fhe_models
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # Model training (run once)
+  train:
+    build: .
+    container_name: dark-subnet-train
+    command: python fhe_models/train_model.py
+    volumes:
+      - ./fhe_models:/app/fhe_models
+    environment:
+      - PYTHONUNBUFFERED=1
