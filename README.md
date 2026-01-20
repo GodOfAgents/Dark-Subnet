@@ -1,169 +1,113 @@
-# 🌑 Dark Subnet - Privacy-First Bittensor Subnet with FHE
+# 🌑 Dark Subnet - Privacy-First Bittensor Subnet
 
-A hackathon demo demonstrating **Blind Inference** and **Blind Verification** using Fully Homomorphic Encryption (FHE).
+> **"Computation on data you cannot see. Verification of work you cannot read."**
+
+**Dark Subnet** is a pioneering Bittensor implementation that unlocks sensitive AI use cases (Healthcare, Finance, Privacy-Preserving GovTech) by combining **Fully Homomorphic Encryption (FHE)** with a novel **Honey Pot Verification** mechanism.
+
+---
 
 ## 🔮 The Innovation
 
 | Feature | Standard Subnet | Dark Subnet |
 |---------|-----------------|-------------|
-| Data Visibility | Public | **Zero** (miners see noise) |
-| Verification | Redundant | **Honey Pots** (traps) |
-| Hardware | GPU Dependent | **CPU/GPU Agnostic** |
-| Use Case | Chatbots | **Medical/Financial** |
+| **Data Visibility** | 🔓 Public (Miners see raw data) | 🔒 **ZERO** (Miners see encrypted noise) |
+| **Verification** | ⚖️ Redundant (Multiple miners) | 🍯 **Honey Pots** (Trap-based proof) |
+| **Privacy Compliance** | ❌ Risky (Data leaks) | ✅ **HIPAA/GDPR** "Privacy by Design" |
+| **Incentive Layer** | Token-based ranking | Performance + Blind Accuracy |
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Core Architecture
 
-### Option 1: Docker (Recommended for Windows)
+### 1. Blind Inference (Miner)
+Miners function as "blind executors." They receive FHE-encrypted ciphertext and compute results using `concrete-ml` without ever decrypting the input.
+- **Input**: Encrypted mathematical noise.
+- **Output**: Encrypted result, decryptable only by the Client.
 
+### 2. Blind Verification (Validator)
+The **"Trust Sandwich"** protocol:
+1. Validator generates a **Trap** (Honey Pot) with a known correct answer.
+2. The Trap is encrypted and mixed with real Client requests.
+3. Miner processes both without being able to distinguish them.
+4. Validator decrypts **only** the Trap result to score the Miner’s honesty.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Python 3.10+**
+- **Docker Desktop** (Essential for Windows/macOS to run Linux-only FHE libraries)
+
+### Installation
 ```bash
-# Build the image
-docker build -t dark-subnet .
-
-# Run the demo
-docker run -it dark-subnet python demo.py
-
-# Or use the batch script
-run_docker.bat demo
-```
-
-### Option 2: Docker Compose (Full Simulation)
-
-```bash
-# Train model + run miner + validator
-docker-compose up
-
-# Or run separately:
-docker-compose up train    # Train FHE model
-docker-compose up miner    # Start miner on port 8091
-docker-compose up validator # Start validator
-```
-
-### Option 3: Native Python (Linux/WSL2)
-
-```bash
+git clone https://github.com/GodOfAgents/Dark-Subnet.git
+cd Dark-Subnet
 pip install -r requirements.txt
-python demo.py
 ```
 
-### Option 4: Mock Demo (Windows - No Docker)
+---
 
+## 🎮 Running the Demo
+
+### Option 1: Full FHE Demo (Windows/Docker)
+Run the complete end-to-end flow (Model training → Encryption → Blind Inference → Decryption):
 ```bash
-pip install numpy scikit-learn rich requests
+# Using the Windows helper script
+run_docker.bat demo
+
+# OR manually
+docker build -t dark-subnet .
+docker run -it dark-subnet python demo.py
+```
+
+### Option 2: Mock Demo (Instant / No Docker)
+For a quick visual overview of the concept without heavy FHE libraries:
+```bash
 python demo_mock.py
 ```
 
 ---
 
-## 🐳 Docker Commands
+## 🧪 Testnet Participation
 
-| Command | Description |
-|---------|-------------|
-| `run_docker.bat demo` | Run full FHE demo |
-| `run_docker.bat train` | Train FHE model |
-| `run_docker.bat miner` | Start simulated miner |
-| `run_docker.bat validator` | Start simulated validator |
-| `run_docker.bat simulation` | Run miner + validator together |
-| `run_docker.bat shell` | Open bash in container |
+We have provided automated scripts to help you join the Bittensor Testnet.
+
+1. **Setup Wallets**: `scripts/setup_testnet.bat` (Creates coldkeys/hotkeys)
+2. **Register**: Use `btcli subnet register --netuid 1 --subtensor.network test`
+3. **Launch Miner**: `scripts/run_miner_testnet.bat`
+4. **Launch Validator**: `scripts/run_validator_testnet.bat`
+
+*Check [TESTNET_GUIDE.md](TESTNET_GUIDE.md) for detailed step-by-step instructions.*
 
 ---
 
-## 📁 Project Structure
+## 📁 Repository Structure
 
 ```
-dark_subnet/
+Dark-Subnet/
 ├── neurons/
-│   ├── miner.py          # Blind FHE inference server
-│   └── validator.py      # Honey pot verification
+│   ├── miner.py          # Blind FHE inference neuron
+│   └── validator.py      # Honey pot scoring neuron
 ├── protocol/
-│   └── synapse.py        # FHESynapse definition
+│   └── synapse.py        # FHESynapse & Batch definitions
 ├── fhe_models/
-│   ├── train_model.py    # Train & compile FHE circuit
-│   └── credit_scorer/    # Compiled model artifacts
+│   └── train_model.py    # Quantized FHE model training
 ├── client/
-│   └── oracle.py         # Client-side encryption SDK
-├── demo.py               # Full FHE demo
-├── demo_mock.py          # Mock demo (Windows)
-├── run_simulation.py     # Miner+Validator sim
-├── Dockerfile            # Docker build
-└── docker-compose.yml    # Multi-container setup
+│   └── oracle.py         # Client encryption SDK
+├── scripts/              # Testnet automation tools
+├── demo.py               # Main FHE demonstration script
+├── demo_mock.py          # Lightweight simulator
+├── Dockerfile            # Containerized environment
+└── docker-compose.yml    # Miner-Validator orchestration
 ```
 
 ---
 
-## 🔐 How It Works
-
-### 1. Blind Inference (Miner)
-```python
-# Miner receives encrypted data
-encrypted_result = fhe_server.run(encrypted_input)
-# Miner NEVER sees: age, income, medical history
-```
-
-### 2. Blind Verification (Validator)
-```python
-# Validator creates trap with known output
-trap = encrypt([age=99, smoker=yes])  # Known "High Risk"
-if miner_result != expected:
-    score = 0.0  # Caught cheating!
-```
-
-### 3. The Trust Sandwich Protocol
-```
-Validator → Creates TRAP (known output)
-    ↓
-Trap is ENCRYPTED → Miner can't tell it's a trap
-    ↓
-Miner processes → Returns encrypted result
-    ↓
-Validator DECRYPTS trap → Verifies correctness
-    ↓
-If correct → Miner is trusted
-```
-
----
-
-## 🎬 Running Modes
-
-| Mode | Command | FHE | Use Case |
-|------|---------|-----|----------|
-| Docker Demo | `run_docker.bat demo` | ✅ Real | Production demo |
-| Docker Sim | `docker-compose up` | ✅ Real | Miner+Validator |
-| Mock Demo | `python demo_mock.py` | ❌ Simulated | Windows quick test |
-| Native | `python demo.py` | ✅ Real | Linux/WSL2 |
-
----
-
-## ⚠️ Platform Notes
-
-### Windows
-Concrete ML requires Linux. Use one of:
-- **Docker Desktop** (recommended)
-- **WSL2** with Ubuntu
-- **Mock demo** (`demo_mock.py`)
-
-### Linux / macOS
-```bash
-pip install concrete-ml
-python demo.py
-```
-
----
-
-## 📊 Hackathon Summary
-
-| What We Built | Technology |
-|---------------|------------|
-| Blind Inference | Zama Concrete ML (FHE) |
-| Blind Verification | Honey Pot Traps |
-| Network Protocol | Bittensor Subnet |
-| Use Cases | Healthcare, Finance |
-
-**Key Innovation**: Miners work on data they cannot see. Validators grade work without seeing answers.
-
----
+## 🏥 Use Case: Healthcare Credit Score
+The current implementation uses a **Logistic Regression** model trained on synthetic medical/financial data. 
+- **Goal**: Predict credit risk or health outcomes for patients.
+- **Privacy Result**: The server computing the risk **never knows** the patient's age, BMI, or medical history.
 
 ## 📜 License
-
-MIT License - Built for Bittensor Hackathon 2026
+MIT License - Built for Bittensor Hackathon 2026.
