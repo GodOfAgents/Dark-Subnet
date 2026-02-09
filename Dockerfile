@@ -30,7 +30,11 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     pydantic>=2.0.0 \
     rich>=13.0.0 \
     requests>=2.28.0 \
-    concrete-ml>=1.5.0
+    concrete-ml>=1.5.0 \
+    bittensor>=6.0.0 \
+    py-ecc>=6.0.0 \
+    pycryptodome>=3.19.0 \
+    pytest>=7.0.0
 
 # Copy project files
 COPY . .

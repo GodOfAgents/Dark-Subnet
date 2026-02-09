@@ -135,7 +135,49 @@ The validator will:
 
 ---
 
-## Step 8: Monitor
+## Step 8: Cryptographic Security (Optional)
+
+Dark Subnet includes advanced cryptographic features for enhanced security:
+
+### ZKP Proof Verification
+Miners can provide zero-knowledge proofs of correct computation:
+```python
+from crypto.zkp.computation_proof import ProofGenerator
+
+# Miner generates proof
+generator = ProofGenerator()
+proof = generator.generate_proof(
+    input_hash="encrypted_input_hash",
+    output_hash="encrypted_output_hash",
+    computation_time_ms=2000.0
+)
+```
+
+### MPC Threshold Decryption
+Validators use 2-of-3 threshold decryption for honey pot results:
+```python
+from neurons.validator import CryptoEnhancedValidator
+
+# Create crypto-enhanced validator
+crypto_validator = CryptoEnhancedValidator(n_validators=3, threshold=2)
+crypto_validator.print_crypto_status()
+
+# Setup threshold decryption for trap
+shares = crypto_validator.setup_threshold_decryption(b"trap_secret_key!")
+```
+
+### Enable Crypto in Validator
+```bash
+python neurons/validator.py \
+    --netuid <YOUR_SUBNET_ID> \
+    --wallet.name dark_validator \
+    --subtensor.network test \
+    --crypto-enabled  # Enable ZKP/MPC
+```
+
+---
+
+## Step 9: Monitor
 
 ### Check your registration
 ```bash

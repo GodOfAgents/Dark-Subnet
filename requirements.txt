@@ -7,6 +7,11 @@ pydantic>=2.0.0
 rich>=13.0.0
 requests>=2.28.0
 
+# Cryptographic dependencies (ZKP/MPC)
+py-ecc>=6.0.0           # Elliptic curve crypto for ZKP
+pycryptodome>=3.19.0    # Shamir secret sharing
+mpyc>=0.9               # Multi-party computation
+
 # Development
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

@@ -36,6 +36,16 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
+# Crypto imports for ZKP and MPC
+try:
+    from crypto.zkp.computation_proof import ProofVerifier, ComputationProof
+    from crypto.mpc.threshold import ThresholdDecryptor
+    HAS_CRYPTO = True
+except ImportError:
+    HAS_CRYPTO = False
+    ProofVerifier = None
+    ThresholdDecryptor = None
+
 console = Console()
 
 
@@ -292,6 +302,156 @@ class SimulatedValidator:
             status = "✓ Trusted" if score > 0.5 else "✗ Untrusted"
             color = "green" if score > 0.5 else "red"
             console.print(f"  {miner_url}: [{color}]{score:.2f} - {status}[/{color}]")
+
+
+# ============================================================
+# CRYPTO-ENHANCED VALIDATOR - ZKP + MPC
+# ============================================================
+
+class CryptoEnhancedValidator:
+    """
+    Validator with advanced cryptographic verification.
+    
+    Features:
+    - ZKP: Verify miner computation proofs without re-executing
+    - MPC: Threshold decryption for honey pot results (2-of-3)
+    """
+    
+    def __init__(self, n_validators: int = 3, threshold: int = 2):
+        """
+        Initialize crypto-enhanced validator.
+        
+        Args:
+            n_validators: Total validators in MPC scheme
+            threshold: Minimum validators for decryption
+        """
+        self.n_validators = n_validators
+        self.threshold = threshold
+        
+        # Initialize crypto components
+        self.proof_verifier = None
+        self.threshold_decryptor = None
+        
+        if HAS_CRYPTO:
+            self.proof_verifier = ProofVerifier(min_computation_time_ms=100.0)
+            self.threshold_decryptor = ThresholdDecryptor(n=n_validators, k=threshold)
+            console.print("[green]✓ Crypto modules loaded (ZKP + MPC)[/green]")
+        else:
+            console.print("[yellow]⚠ Crypto modules not available[/yellow]")
+    
+    def verify_computation_proof(self, proof_data: dict) -> tuple[bool, str]:
+        """
+        Verify a miner's ZKP computation proof.
+        
+        Args:
+            proof_data: Serialized ComputationProof dict
+            
+        Returns:
+            Tuple of (is_valid, message)
+        """
+        if not self.proof_verifier:
+            return True, "Proof verification skipped (no crypto module)"
+        
+        try:
+            proof = ComputationProof.deserialize(proof_data)
+            return self.proof_verifier.verify_proof(proof)
+        except Exception as e:
+            return False, f"Proof deserialization failed: {e}"
+    
+    def setup_threshold_decryption(self, trap_key: bytes) -> dict:
+        """
+        Setup MPC threshold decryption for a honey pot trap.
+        
+        Args:
+            trap_key: The 16-byte key for decrypting trap results
+            
+        Returns:
+            Dict mapping validator_id to their key share
+        """
+        if not self.threshold_decryptor:
+            return {}
+        
+        # Ensure key is exactly 16 bytes
+        import hashlib
+        if len(trap_key) != 16:
+            trap_key = hashlib.sha256(trap_key).digest()[:16]
+        
+        return self.threshold_decryptor.distribute_key(trap_key)
+    
+    def contribute_decryption_share(
+        self, 
+        request_id: str, 
+        validator_id: int, 
+        share: bytes
+    ) -> tuple[bool, str]:
+        """
+        Contribute a partial decryption share.
+        
+        Args:
+            request_id: The decryption request ID
+            validator_id: This validator's ID
+            share: The key share for this validator
+            
+        Returns:
+            Tuple of (success, status_message)
+        """
+        if not self.threshold_decryptor:
+            return False, "MPC not available"
+        
+        return self.threshold_decryptor.contribute_share(request_id, validator_id, share)
+    
+    def try_threshold_decrypt(self, request_id: str) -> tuple[bytes | None, str]:
+        """
+        Attempt to decrypt using collected shares.
+        
+        Args:
+            request_id: The decryption request ID
+            
+        Returns:
+            Tuple of (decrypted_key or None, message)
+        """
+        if not self.threshold_decryptor:
+            return None, "MPC not available"
+        
+        return self.threshold_decryptor.try_decrypt(request_id)
+    
+    def request_decryption(self, ciphertext_hash: str) -> str:
+        """
+        Initiate a threshold decryption request.
+        
+        Args:
+            ciphertext_hash: Hash of the encrypted trap result
+            
+        Returns:
+            Request ID for tracking
+        """
+        if not self.threshold_decryptor:
+            return ""
+        
+        return self.threshold_decryptor.request_decryption(ciphertext_hash)
+    
+    def print_crypto_status(self):
+        """Print crypto module status."""
+        table = Table(title="🔐 Cryptographic Security Status")
+        table.add_column("Module", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Config", style="yellow")
+        
+        zkp_status = "✓ Active" if self.proof_verifier else "✗ Unavailable"
+        mpc_status = "✓ Active" if self.threshold_decryptor else "✗ Unavailable"
+        
+        table.add_row(
+            "ZKP (Proof Verification)",
+            zkp_status,
+            "Pedersen + Fiat-Shamir"
+        )
+        table.add_row(
+            "MPC (Threshold Decryption)",
+            mpc_status,
+            f"{self.threshold}-of-{self.n_validators} Shamir SSS"
+        )
+        
+        console.print(table)
 
 
 # ============================================================
